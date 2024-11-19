@@ -12,47 +12,63 @@ from langchain_openai import ChatOpenAI
 import bcrypt
 import os
 import asyncio
-import openai
+from pymongo import MongoClient
+from datetime import datetime
+from dotenv import load_dotenv
 
+
+load_dotenv()
 # Enhanced logging configuration
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Initialize SQLite database connection and create users table if not exists
-def init_db():
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE,
-        password TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )''')
-    conn.commit()
-    return conn
 
-# Function to signup a new user
+# Connect to MongoDB
+def get_mongo_client():
+    mongo_uri = os.getenv("MONGO_URI")
+    client = MongoClient(mongo_uri)
+    db = client["pathwayai_users"]  # Create or connect to the database
+    return db
+
+db = get_mongo_client()
+users_collection = db["users"]
+
 def signup_user(email, password):
-    conn = init_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE email=?", (email,))
-    if c.fetchone():
-        return False  # Email already exists
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    c.execute("INSERT INTO users (email, password) VALUES (?, ?)", (email, hashed_password))
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        # Check if the user already exists
+        if users_collection.find_one({"email": email}):
+            logger.debug(f"Signup failed: Email {email} already exists.")
+            return False  # Email already exists
+
+        # Hash the password and store user
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        user = {
+            "email": email,
+            "password": hashed_password.decode('utf-8'),
+            "created_at": datetime.utcnow()
+        }
+        users_collection.insert_one(user)
+        logger.debug(f"Signup successful: Email {email} added to database.")
+        return True
+    except Exception as e:
+        logger.error(f"Error during signup: {str(e)}")
+        return False
+
 
 # Function to authenticate user
 def authenticate_user(email, password):
-    conn = init_db()
-    c = conn.cursor()
-    c.execute("SELECT password FROM users WHERE email=?", (email,))
-    result = c.fetchone()
-    if result and bcrypt.checkpw(password.encode('utf-8'), result[0]):
-        return True  # Authentication successful
-    return False  # Authentication failed
+    try:
+        # Fetch the user by email
+        user = users_collection.find_one({"email": email})
+        if user and bcrypt.checkpw(password.encode('utf-8'), user["password"].encode('utf-8')):
+            logger.debug(f"Authentication successful for {email}.")
+            return True
+        logger.debug(f"Authentication failed for {email}.")
+        return False
+    except Exception as e:
+        logger.error(f"Error during authentication: {str(e)}")
+        return False
+
 
 # Initialize session state variables
 if "messages" not in st.session_state:
