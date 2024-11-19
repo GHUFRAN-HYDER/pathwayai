@@ -144,7 +144,7 @@ def initialize_resources():
 retriever, rag_chain = initialize_resources()
 
 def main():
-    st.title("Visa Information Assistant")
+    st.title("PathwayAI")
 
     # User Authentication Section
     if not st.session_state.authenticated:
