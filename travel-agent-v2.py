@@ -114,6 +114,7 @@ from langchain.tools import Tool
 
 @st.cache_resource(show_spinner=False)
 def initialize_resources():
+    // ... existing initialization code ...
 
     search = DuckDuckGoSearchRun()
     
@@ -277,18 +278,18 @@ def main():
                 status.update(label="Trip planning complete!", state="complete", expanded=False)
 
 
-            async def handle_query():
-                message_placeholder = st.empty()
-                with st.spinner('Searching and verifying information...'):
-                    response = await agent_executor.ainvoke({
-                        "input": prompt,
-                        "chat_history": chat_history
-                    })
-                final_answer = response["output"]
-                message_placeholder.markdown(final_answer)
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": final_answer}
-                )
+                async def handle_query():
+                    message_placeholder = st.empty()
+                    with st.spinner('Searching and verifying information...'):
+                        response = await agent_executor.ainvoke({
+                            "input": prompt,
+                            "chat_history": chat_history
+                        })
+                    final_answer = response["output"]
+                    message_placeholder.markdown(final_answer)
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": final_answer}
+                    )
             asyncio.run(handle_query())
             sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
             selected = st.feedback("thumbs")
