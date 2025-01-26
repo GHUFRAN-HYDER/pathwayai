@@ -114,7 +114,6 @@ from langchain.tools import Tool
 
 @st.cache_resource(show_spinner=False)
 def initialize_resources():
-    // ... existing initialization code ...
 
     search = DuckDuckGoSearchRun()
     
