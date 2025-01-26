@@ -275,7 +275,8 @@ def main():
                 st.write("📊 Checking current prices...")
                 st.write("💡 Generating recommendations...")
                 status.update(label="Trip planning complete!", state="complete", expanded=False)
-
+                chat_history = [(msg["role"], msg["content"]) for msg in st.session_state.messages[:-1]]
+                st.session_state.current_message = ""
 
                 async def handle_query():
                     message_placeholder = st.empty()
@@ -289,10 +290,10 @@ def main():
                     st.session_state.messages.append(
                         {"role": "assistant", "content": final_answer}
                     )
-            asyncio.run(handle_query())
-            sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
-            selected = st.feedback("thumbs")
-            if selected is not None:
-               st.markdown(f"You selected: {sentiment_mapping[selected]}")
+                asyncio.run(handle_query())
+                sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
+                selected = st.feedback("thumbs")
+                if selected is not None:
+                st.markdown(f"You selected: {sentiment_mapping[selected]}")
 if __name__ == "__main__":
     main()
